@@ -7,17 +7,24 @@
 
 (declare ideas-game game-screen ui-screen)
 
-;; Physics
+(def todos
+  ["receive coords from touch and mouse events"
+   "box avoids pointer"
+   "collide with walls"
+   "collide with other squares"
+   "duplicate on touch"
+   "rotate from collision"
+   "be able to be pushed off of screen"
+   "add gradient background to make it more brainly"])
+
+;; FIXME Phys values. they're not tuned yet
 (def ^:const wall-impact-speed-threshold 24)
+(def ^:const damping 4)
+(def ^:const friction 4)
 
-;; Config
-(def title-location
-  {:x (/ 2 (game :width))
-   :y (/ 2 (game :height))})
+(def ^:const idea-react-distance 40)
 
-(def first-idea-location
-  {:x 50
-   :y 50})
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;; Entities
 (defn make-idea
@@ -27,24 +34,26 @@
          :x x
          :y y))
 
-(defn split-idea
-  "take the first idea and split it into 2, moving in different directions"
+(defn dupe-idea
+  "take the first idea and split it into 2, moving in different directions depending on where the idea was touched"
   [{:keys [x y] :as entity}])
 
 ;; World
 (defn out-of-x-bounds
-  "FIXME Checks if the provided location is outside the left and right bounds of the screen."
+  "Checks if the provided location is outside the left and right bounds of the screen.
+  FIXME width of the entity need to factor in for the bounds check for neg"
   [screen x]
-  (or (< x (:width screen))
-      (> x (:x-size screen))))
+  (or (< x (game :width))
+      (neg? x)))
 
 (defn out-of-y-bounds [screen y]
-  "FIXME"
-  (or (< x (:height screen))
-      (> x (:height screen))))
+  "FIXME fix the math here 
+  FIXME width of the entity need to factor in for the bounds check for neg"
+  (or (< y (game :height))
+      (neg? y)))
 
 (defn out-of-bounds [screen x y]
-  "Checks if the locations are completely out of bounds on any side."
+  "FIXME: factor rotation into out-of-bounds?"
   (or (out-of-x-bounds screen x)
       (out-of-y-bounds screen y)))
 
@@ -62,26 +71,39 @@
   :on-show
   (fn [screen entities]
     (update! screen :renderer (stage))
-    (label "Touch To Begin"
-           (color :white)
-           :set-position (:x title-location) (:y title-location)))
+    #_(clear! 248.0 244.0 215.0 1)
+    (let [title-x (- (/ (game :width) 2) 10)
+          title-y (/ (game :height) 2)
+          label-x (- (/ (game :width) 2) 40)
+          label-y (/ (game :height) 2.2)]
+
+      [(label "Ideas"
+             (color 244.0 179.0 108.0 1)
+             :set-scale 24
+             :set-position title-x title-y)
+       (label "Touch To Begin"
+             (color :white)
+             :set-position label-x label-y)]))
 
   :on-render
   (fn [screen entities]
-    (clear!)
+    (clear! 248.0 244.0 215.0 1)
+    (render! screen entities))
+
+  :on-touch-down
+  (fn [screen entities]
     (if (game :touched?)
-      (set-screen! ideas-game game-screen ui-screen))
-    (render! screen entities)))
+      (set-screen! ideas-game game-screen ui-screen))))
 
 (defscreen game-screen
   :on-show
   (fn [screen entities]
     (update! screen :renderer (stage))
-    (-> (shape :filled
-               :set-color (color :white)
-               :rect 0 0 100 100)
-        (assoc :x (:x first-idea-location)
-               :y (:y first-idea-location))))
+    (assoc (shape :filled
+                  :set-color (color 244.0 179.0 108.0 1)
+                  :rect 0 0 90 90)
+           :x 50
+           :y 50))
 
   :on-render
   (fn [screen entities]
@@ -95,7 +117,6 @@
 
   :on-render
   (fn [screen entities]
-    (clear!)
     (render! screen entities)))
 
 (defgame ideas-game
@@ -103,8 +124,7 @@
   (fn [this]
     (set-screen! this title-screen)))
 
-
-;;;; REPL Stuff
+;;;; REPL Helpers
 (defn reload! []
   (require 'ideas-game.core :reload)
   (on-gl (set-screen! ideas-game title-screen)))
