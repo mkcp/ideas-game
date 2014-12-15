@@ -1,6 +1,8 @@
-## Introduction
+## Ideas
 
-A play-clj game in which ... well, that part is up to you.
+The microgame is your brain and the squares are your ideas.
+
+Prototype/Work in progress
 
 ## Contents
 
