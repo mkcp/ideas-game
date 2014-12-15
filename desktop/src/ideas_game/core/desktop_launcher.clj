@@ -6,5 +6,5 @@
 
 (defn -main
   []
-  (LwjglApplication. ideas-game "ideas-game" 800 600)
+  (LwjglApplication. ideas-game "ideas-game" 450 800)
   (Keyboard/enableRepeatEvents true))
