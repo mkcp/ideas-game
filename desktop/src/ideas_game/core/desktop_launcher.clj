@@ -8,3 +8,7 @@
   []
   (LwjglApplication. ideas-game "ideas-game" 450 800)
   (Keyboard/enableRepeatEvents true))
+
+(defn s! []
+  (do (-main)
+      (in-ns 'ideas-game.core)))
