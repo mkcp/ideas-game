@@ -139,8 +139,8 @@
 
 (defn is-touching?
   [input-x input-y {:keys [x y width height] :as entity}]
-  (or (and (> input-x x) (> input-x (+ x width)))
-      (and (> input-y y) (> input-y (+ y height)))))
+  (and (and (> input-x x) (< input-x (+ x width)))
+       (and (> input-y y) (< input-y (+ y height)))))
 
 (defn handle-touch
   [screen entity]
@@ -161,8 +161,8 @@
                   :rect 0 0 100 100)
             :x (/ (game :width) 2)
             :y  (/ (game :height) 2)
-            :width 1
-            :height 1
+            :width 100
+            :height 100
             :shape? true))
 
   :on-render
@@ -175,7 +175,6 @@
                      (handle-touch screen)
                      #_(move screen)
                      #_(collide screen)
-                     #_(resolve-collisions screen)
                      #_rotate-all)))
          (render! screen))))
 
