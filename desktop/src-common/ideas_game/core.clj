@@ -10,8 +10,7 @@
 (declare ideas-game game-screen ui-screen)
 
 (def todos
-  ["receive coords from touch and mouse events"
-   "box avoids pointer"
+  ["box avoids pointer"
    "collide with walls"
    "collide with other squares"
    "Get color palatte going"
