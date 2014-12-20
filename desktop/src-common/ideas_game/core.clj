@@ -1,5 +1,7 @@
 (ns ideas-game.core
-  (:require [play-clj.core :refer :all]
+  (:require #_[ideas-game.entities :as e]
+            [ideas-game.utils :as u]
+            [play-clj.core :refer :all]
             [play-clj.repl :refer [e e! s s!]]
             [play-clj.g2d :refer :all]
             [play-clj.g2d-physics :refer :all]
@@ -20,13 +22,6 @@
    "be able to be pushed off of screen"
    "add gradient background to make it more brainly"])
 
-;; FIXME Phys values. they're not tuned yet
-(def ^:const wall-impact-speed-threshold 24)
-(def ^:const damping 4)
-(def ^:const friction 4)
-
-(def ^:const idea-react-distance 40)
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;; Entities
@@ -41,9 +36,12 @@
          :change-x
          :change-y))
 
-(defn dupe-idea
+(defn split
   "take the first idea and split it into 2, moving in different directions depending on where the idea was touched"
-  [{:keys [x y] :as entity}])
+  [{:keys [x y] :as entity} entities]
+  (conj entities (assoc entity
+                        :x (+ x 30)
+                        :y (+ x 30))))
 
 ;; World
 (defn out-of-x-bounds
@@ -73,34 +71,36 @@
              (filter entity entities)
              entities)))
 
-(defn rotate-title-idea [{:keys [angle shape?] :as entity}]
+(defn rotate-all [{:keys [angle shape?] :as entity}]
   (if shape?
-    (assoc entity :angle (- angle 0.1))
+    (assoc entity :angle (- angle 0.13))
     entity))
 
 ;; Game State
 (defscreen title-screen
   :on-show
   (fn [screen entities]
-    (music "dissonencien.mp3" :play :set-looping true)
     (update! screen :renderer (stage))
+
+    (music "dissonencien.mp3" :play :set-looping true)
+
     [(image "Ideas.png"
             :set-position (* (game :width) 0.15) (/ (game :height) 1.66))
-     (label "Touch Screen To Begin"
+     (label "Touch this Idea to Begin"
             (color :white)
-            :set-position (/ (game :width) 3) (/ (game :height) 3.33))
+            :set-position (/ (game :width) 3.1) (/ (game :height) 3.33))
      (image "dissonencien_img.png"
             :set-scale 0.25
-            :set-position 5 5)
+            :set-position 15 15)
      (label "Now Playing"
             (color :white)
-            :set-position 70 42)
+            :set-position 83 52)
      (label "Dissonencien"
             (color :white)
-            :set-position 70 22)
+            :set-position 83 32)
      (label "By Arielle Grimes"
             (color :white)
-            :set-position 70 3)
+            :set-position 83 13)
      (assoc (shape :filled
                    :translate -50 -50 0
                    :set-color (color :white)
@@ -113,8 +113,7 @@
   :on-render
   (fn [screen entities]
     (clear!)
-    (render! screen
-             (map rotate-title-idea entities)))
+    (render! screen (map rotate-all entities)))
 
   :on-touch-down
   (fn [screen entities]
@@ -139,34 +138,47 @@
       (assoc entity)
      entity)))
 
+(defn is-touching?
+  [input-x input-y {:keys [x y width height] :as entity}]
+  (or (and (> input-x x) (> input-x (+ x width)))
+      (and (> input-y y) (> input-y (+ y height)))))
+
+(defn handle-touch
+  [screen entity]
+  (if (game :touched?)
+    (if (is-touching? (game :x) (game :y) entity)
+      ((fn [] (println "split") entity))
+      ((fn [] (println "repel") entity)))
+    entity))
+
 (defscreen game-screen
   :on-show
   (fn [screen entities]
     (update! screen :renderer (stage))
+
     (assoc (shape :filled
-                  :set-color (color 244.0 179.0 108.0 1)
-                  :rect 0 0 90 90)
-           :x 50
-           :y 50
-           :x-velocity 0
-           :y-velocity 0
-           :x-change 0
-           :y-change 0))
+                  :translate -50 -50 0
+                  :set-color (color :white)
+                  :rect 0 0 100 100)
+            :x (/ (game :width) 2)
+            :y  (/ (game :height) 2)
+            :width 1
+            :height 1
+            :shape? true))
 
   :on-render
   (fn [screen entities]
     (clear!)
-    (let [input-x (:input-x screen)
-          input-y (:input-y screen)]
-      (->> entities
-           #_(map (fn [entity]
-                  (->> entity
-                       (move screen)
-                       (collide screen)
-                       (resolve-collisions screen)))
-                entities)
-           (render! screen))))
-  )
+
+    (->> entities
+         (map (fn [entity]
+                (->> entity
+                     (handle-touch screen)
+                     #_(move screen)
+                     #_(collide screen)
+                     #_(resolve-collisions screen)
+                     #_rotate-all)))
+         (render! screen))))
 
 (defscreen ui-screen
   :on-show
@@ -179,7 +191,7 @@
 
 (defscreen blank-screen
   :on-render
-  (fn [screen entities]
+  (fn [screen entites]
     (clear!)))
 
 (defgame ideas-game
@@ -192,6 +204,7 @@
   (require 'ideas-game.core :reload)
   (on-gl (set-screen! ideas-game title-screen)))
 
+;; Disables game screen on exception.
 (set-screen-wrapper! (fn [screen screen-fn]
                        (try (screen-fn) (catch Exception e
                                           (.printStackTrace e)
